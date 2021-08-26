@@ -25,33 +25,13 @@ class EpsilonGreedyAgent:
         self.__update_action_values(current_action, reward)
         return current_action
 
+    def get_action_values(self):
+        return self.action_values
+
     def reset(self):
         self.last_action = None
         self.action_values *= 0.0
         self.action_count *= 0.0
-
-
-def epsilon_greedy(epsilon):
-    rand = np.random.random()
-    if rand < epsilon:
-        action = env.action_space.sample()
-    else:
-        action = np.argmax(Q)
-
-    return action
-
-
-def softmax(tau):
-    total = sum([math.exp(val / tau) for val in Q])
-    probs = [math.exp(val / tau) / total for val in Q]
-
-    threshold = random.random()
-    cumulative_prob = 0.0
-    for i in range(len(probs)):
-        cumulative_prob += probs[i]
-        if cumulative_prob > threshold:
-            return i
-    return np.argmax(probs)
 
 
 class UcbAgent:
@@ -61,7 +41,7 @@ class UcbAgent:
         self.sum_rewards = np.zeros(arms)
         self.action_count = np.zeros(arms)
 
-    def get_qvalues(self):
+    def get_action_values(self):
         return self.q_values
 
     def get_action(self, reward):
@@ -105,7 +85,16 @@ class UcbAgent:
         self.sum_rewards *= 0.0
 
 
-def thompson_sampling(alpha, beta):
-    samples = [np.random.beta(alpha[i] + 1, beta[i] + 1) for i in range(10)]
+def softmax(tau):
+    total = sum([math.exp(val / tau) for val in Q])
+    probs = [math.exp(val / tau) / total for val in Q]
 
-    return np.argmax(samples)
+    threshold = random.random()
+    cumulative_prob = 0.0
+    for i in range(len(probs)):
+        cumulative_prob += probs[i]
+        if cumulative_prob > threshold:
+            return i
+    return np.argmax(probs)
+
+

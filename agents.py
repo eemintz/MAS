@@ -2,56 +2,33 @@ import numpy as np
 import math
 import random
 
-def argmax(q_values):
-    """
-    Takes in a matrix of n*k q_values and returns the index
-    of the item with the highest value for each row.
-    Breaks ties randomly.
-    returns: vector of size n, where each item is the index of
-    the highest value in q_values for each row.
-    """
-    # Generate a mask of the max values for each row
-    mask = q_values == q_values.max(axis=1)[:, None]
-    # Generate noise to be added to the ties
-    r_noise = 1e-6*np.random.random(q_values.shape)
-    # Get the argmax of the noisy masked values
-    return np.argmax(r_noise*mask, axis=1)
 
+class EpsilonGreedyAgent:
+    def __init__(self, arms=10, epsilon=0.1):
+        self.last_action = None
+        self.action_values = np.zeros(arms)
+        self.action_count = np.zeros(arms)
+        self.epsilon = epsilon
 
-class GreedyAgent:
-    def __init__(self, reward_estimates):
-        """
-        Our agent takes as input the initial reward estimates.
-        This estimates will be updated incrementally after each
-        interaction with the environment.
-        """
-        assert len(reward_estimates.shape) == 2
+    def __update_action_values(self, action, reward):
+        self.action_count[action] += 1
+        step_size = 1 / self.action_count[action]  # default behavior is averaging samples
+        self.action_values[action] += step_size * (reward - self.action_values[action])
 
-        self.num_bandits = reward_estimates.shape[1]
-        self.num_experiments = reward_estimates.shape[0]
-        self.reward_estimates = reward_estimates.astype(np.float64)
-        self.action_count = np.zeros(reward_estimates.shape)
+    def get_action(self, reward):
+        should_explore = np.random.random() < self.epsilon
+        if should_explore:
+            current_action = np.random.randint(0, len(self.action_count))
+        else:
+            current_action = np.argmax(self.action_values)
 
-    def get_action(self):
-        # Our agent is greedy, so there's no need for exploration.
-        # Our argmax will do just fine for this situation
-        action = argmax(self.reward_estimates)
+        self.__update_action_values(current_action, reward)
+        return current_action
 
-        # Add a 1 to each action selected in the action count
-        self.action_count[np.arange(self.num_experiments), action] += 1
-
-        return action
-
-    def update_estimates(self, reward, action):
-        # rew is a matrix with the obtained rewards from our previous
-        # action. Use this to update our estimates incrementally
-        n = self.action_count[np.arange(self.num_experiments), action]
-
-        # Compute the difference between the received rewards vs the reward estimates
-        error = reward - self.reward_estimates[np.arange(self.num_experiments), action]
-
-        # Update the reward difference incrementally
-        self.reward_estimates[np.arange(self.num_experiments), action] += (1 / n) * error
+    def reset(self):
+        self.last_action = None
+        self.action_values *= 0.0
+        self.action_count *= 0.0
 
 
 def epsilon_greedy(epsilon):
@@ -72,27 +49,60 @@ def softmax(tau):
     cumulative_prob = 0.0
     for i in range(len(probs)):
         cumulative_prob += probs[i]
-        if (cumulative_prob > threshold):
+        if cumulative_prob > threshold:
             return i
     return np.argmax(probs)
 
-def UCB(iters):
-    ucb = np.zeros(10)
 
-    # explore all the arms
-    if iters < 10:
-        return i
+class UcbAgent:
+    def __init__(self, arms=10):
+        self.last_action = None
+        self.q_values = np.zeros(arms)
+        self.sum_rewards = np.zeros(arms)
+        self.action_count = np.zeros(arms)
 
-    else:
-        for arm in range(10):
-            # calculate upper bound
-            upper_bound = math.sqrt((2 * math.log(sum(count))) / count[arm])
+    def get_qvalues(self):
+        return self.q_values
 
-            # add upper bound to the Q valyue
-            ucb[arm] = Q[arm] + upper_bound
+    def get_action(self, reward):
+        ucb = np.zeros(10)
 
-        # return the arm which has maximum value
-        return (np.argmax(ucb))
+        if self.last_action is not None:
+            self.action_count[self.last_action] += 1  # update the count of that arm
+            self.sum_rewards[self.last_action] += reward  # sum the rewards obtained from the arm
+            # calculate Q value which is the average rewards of the arm
+            self.q_values[self.last_action] += (1 / self.action_count[self.last_action]) * (reward - self.q_values[self.last_action])
+            #  self.q_values[self.last_action] = self.sum_rewards[self.last_action] / self.action_count[self.last_action]
+
+        # explore all the arms
+        untried_action = self.__find_untried_action()
+        if untried_action is not None:
+            current_action = untried_action
+        else:
+            for arm in range(10):
+                # calculate upper bound
+                upper_bound = math.sqrt((2 * math.log(sum(self.action_count))) / self.action_count[arm])
+
+                # add upper bound to the Q value
+                ucb[arm] = self.q_values[arm] + upper_bound
+
+            # return the arm which has maximum value
+            current_action = np.argmax(ucb)
+
+        self.last_action = current_action
+        return current_action
+
+    def __find_untried_action(self):
+        untried_actions = np.where(self.action_count == 0)[0]
+        if len(untried_actions) == 0:
+            return None
+        return np.random.choice(untried_actions)
+
+    def reset(self):
+        self.last_action = None
+        self.action_count *= 0.0
+        self.q_values *= 0.0
+        self.sum_rewards *= 0.0
 
 
 def thompson_sampling(alpha, beta):

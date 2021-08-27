@@ -75,7 +75,7 @@ if __name__ == "__main__":
     average_01 = run_epsilon_experiment(epsilon=0.1)
     average_04 = run_epsilon_experiment(epsilon=0.4)
     average_07 = run_epsilon_experiment(epsilon=0.7)
-
+    average_01[0] = average_04[0] = average_07[0] = 0.0
     # plot average rewards
     plt.figure()
     plt.plot(average_01, label='e = 0.1')
@@ -93,6 +93,7 @@ if __name__ == "__main__":
     plt.show()
 
     average_ucb = run_ucb_experiment()
+    average_ucb[0] = 0.0
     # plot average rewards
     plt.figure()
     plt.plot(average_ucb, label='UCB')

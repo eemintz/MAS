@@ -37,7 +37,7 @@ def run_epsilon_experiment(epsilon):
 
         agent.reset()
 
-    for i in range(1, NUM_STEPS):
+    for i in range(NUM_STEPS):
         averages[i] = np.mean(rewards[:, i + 1] / (i + 1))
 
     return averages

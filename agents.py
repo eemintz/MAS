@@ -35,6 +35,7 @@ class EpsilonGreedyAgent:
 
 
 class UcbAgent:
+
     def __init__(self, arms=10):
         self.last_action = None
         self.q_values = np.zeros(arms)
@@ -84,17 +85,5 @@ class UcbAgent:
         self.q_values *= 0.0
         self.sum_rewards *= 0.0
 
-
-def softmax(tau):
-    total = sum([math.exp(val / tau) for val in Q])
-    probs = [math.exp(val / tau) / total for val in Q]
-
-    threshold = random.random()
-    cumulative_prob = 0.0
-    for i in range(len(probs)):
-        cumulative_prob += probs[i]
-        if cumulative_prob > threshold:
-            return i
-    return np.argmax(probs)
 
 

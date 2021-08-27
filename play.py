@@ -4,13 +4,11 @@ from agents import UcbAgent, EpsilonGreedyAgent
 
 
 env = BanditTenArmedGaussian()
-# env.seed(5)
-
-agent = UcbAgent()
-# agent = EpsilonGreedyAgent()
+# agent = UcbAgent()
+agent = EpsilonGreedyAgent(epsilon=0.1)
 
 # number of rounds (iterations)
-num_rounds = 20000
+num_rounds = 1000
 # initialize reward
 reward = 0.0
 
@@ -23,6 +21,6 @@ for i in range(num_rounds):
 
 optimal_arm = np.argmax(agent.get_action_values())
 print(f'The optimal arm is {optimal_arm}')
-print(agent.get_action_values())
+print(agent.get_action_values().round(2))
 
 

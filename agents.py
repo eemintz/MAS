@@ -8,21 +8,26 @@ class EpsilonGreedyAgent:
         self.last_action = None
         self.action_values = np.zeros(arms)
         self.action_count = np.zeros(arms)
+        self.sum_rewards = np.zeros(arms)
         self.epsilon = epsilon
 
     def __update_action_values(self, action, reward):
         self.action_count[action] += 1
         step_size = 1 / self.action_count[action]  # default behavior is averaging samples
         self.action_values[action] += step_size * (reward - self.action_values[action])
+        self.sum_rewards[action] += reward  # sum the rewards obtained from the arm
 
     def get_action(self, reward):
         should_explore = np.random.random() < self.epsilon
+
         if should_explore:
             current_action = np.random.randint(0, len(self.action_count))
         else:
             current_action = np.argmax(self.action_values)
 
-        self.__update_action_values(current_action, reward)
+        if self.last_action is not None:
+            self.__update_action_values(self.last_action, reward)
+        self.last_action = current_action
         return current_action
 
     def get_action_values(self):
@@ -32,6 +37,7 @@ class EpsilonGreedyAgent:
         self.last_action = None
         self.action_values *= 0.0
         self.action_count *= 0.0
+        self.sum_rewards *= 0.0
 
 
 class UcbAgent:

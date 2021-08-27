@@ -7,78 +7,102 @@ from agents import UcbAgent, EpsilonGreedyAgent
 # settings
 NUM_ACTIONS = 10
 
-NUM_TRIALS = 2000
+# number of iterations
+NUM_TRIALS = 1000
 NUM_STEPS = 1000
 
 AGENT_EPSILON = "epsilon"
 AGENT_UCB = "ucb"
 
 
-def main():
-
-    # setup algorithms and arrays to hold results
+def run_epsilon_experiment(epsilon):
     env = BanditTenArmedGaussian()
-    agents = {AGENT_EPSILON: EpsilonGreedyAgent(), AGENT_UCB: UcbAgent()}
+    agent = EpsilonGreedyAgent(epsilon=epsilon)
 
-    rewards = {key: np.zeros(NUM_STEPS, dtype=np.float32) for key in agents.keys()}
-    optimal_actions = {key: np.zeros(NUM_STEPS, dtype=np.float32) for key in agents.keys()}
+    # initialize reward
+    reward = 0.0
+    rewards = np.zeros((NUM_TRIALS, NUM_STEPS + 1))
+    averages = np.zeros(NUM_STEPS)
 
-    # run experiment
-    for i in range(NUM_TRIALS):
+    for j in range(NUM_TRIALS):
+        for i in range(NUM_STEPS):
+            # Select the arm using according agent policy
+            arm = agent.get_action(reward)
 
-        for j in range(NUM_STEPS):
+            # Get the reward
+            observation, reward, done, info = env.step(arm)
 
-            for agent in agents.values():
-                agent.act()
+            # Store the average cumulative score
+            rewards[j, i + 1] = rewards[j, i] + reward
 
-        optimal_action = np.argmax(env.action_values)
+        agent.reset()
 
-        for key in agents.keys():
-            rewards[key] += agents[key].rewards
-            optimal_actions[key] += np.array(agents[key].actions) == optimal_action
-            agents[key].reset()
+    for i in range(1, NUM_STEPS):
+        averages[i] = np.mean(rewards[:, i + 1] / (i + 1))
 
-        env.reset()
+    return averages
 
-    # average rewards and optimal actions
-    for key in agents.keys():
-        rewards[key] = rewards[key] / NUM_TRIALS
-        optimal_actions[key] = (optimal_actions[key] / NUM_TRIALS) * 100
+
+def run_ucb_experiment():
+    env = BanditTenArmedGaussian()
+    agent = UcbAgent()
+
+    # initialize reward
+    reward = 0.0
+    rewards = np.zeros((NUM_TRIALS, NUM_STEPS + 1))
+    averages = np.zeros(NUM_STEPS)
+
+    for j in range(NUM_TRIALS):
+        for i in range(NUM_STEPS):
+            # Select the arm using according agent policy
+            arm = agent.get_action(reward)
+
+            # Get the reward
+            observation, reward, done, info = env.step(arm)
+
+            # Store the average cumulative score
+            rewards[j, i + 1] = rewards[j, i] + reward
+
+        agent.reset()
+
+    for i in range(NUM_STEPS):
+        averages[i] = np.mean(rewards[:, i + 1] / (i + 1))
+
+    return averages
+
+
+if __name__ == "__main__":
+    average_01 = run_epsilon_experiment(epsilon=0.1)
+    average_04 = run_epsilon_experiment(epsilon=0.4)
+    average_07 = run_epsilon_experiment(epsilon=0.7)
 
     # plot average rewards
-    for i, key in enumerate(sorted(rewards.keys())):
-        plt.plot(rewards[key], label=key)
-
+    plt.figure()
+    plt.plot(average_01, label='e = 0.1')
+    plt.plot(average_04, label='e = 0.4')
+    plt.plot(average_07, label='e = 0.7')
     plt.xticks([0, 250, 500, 750, 1000])
     plt.yticks([0.0, 0.5, 1.0, 1.5])
     plt.xlabel("Steps")
     plt.ylabel("Average reward")
-
-    # if args.title is not None:
-    #     plt.title(args.title)
+    plt.title("Average reward for different epsilon")
 
     plt.legend()
 
-    # plt.savefig("{:s}_rewards.{:s}".format(args.save_path, args.format))
+    plt.savefig("Egreedy")
     plt.show()
 
-    # plot optimal actions
-    for key in sorted(optimal_actions.keys()):
-        plt.plot(optimal_actions[key], label=key)
-
+    average_ucb = run_ucb_experiment()
+    # plot average rewards
+    plt.figure()
+    plt.plot(average_ucb, label='UCB')
     plt.xticks([0, 250, 500, 750, 1000])
-    plt.yticks([0, 20, 40, 60, 80, 100])
+    plt.yticks([0.0, 0.5, 1.0, 1.5])
     plt.xlabel("Steps")
-    plt.ylabel("Optimal action (%)")
-
-    # if args.title is not None:
-    #     plt.title(args.title)
+    plt.ylabel("Average reward")
+    plt.title("Average reward")
 
     plt.legend()
 
-    # plt.savefig("{:s}_actions.{:s}".format(args.save_path, args.format))
+    plt.savefig("UCB")
     plt.show()
-
-
-if __name__ == "__main__":
-    main()
